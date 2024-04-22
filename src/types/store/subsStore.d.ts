@@ -2,6 +2,7 @@ interface SubsStoreState {
   subs: Sub[];
   collections: Collection[];
   flows: FlowsDict;
+  files: any[];
 }
 
 interface FlowsDict {
@@ -34,6 +35,9 @@ interface Sub {
   source: 'remote' | 'local';
   icon?: string;
   ua?: string;
+  mergeSources?: string;
+  subUserinfo?: string;
+  tag?: string[];
   process: Process[];
 }
 
@@ -43,6 +47,7 @@ interface Collection {
   process: Process[];
   subscriptions: string[];
   icon?: string;
+  tag?: string[];
 }
 
 interface Artifacts {
@@ -57,9 +62,12 @@ interface Artifacts {
 }
 
 interface Flow {
-  status: 'success';
+  status: 'success' | 'noFlow';
+  showRemaining?: boolean;
+  hideExpire?: boolean;
   data: {
-    expires: number;
+    remainingDays?: number;
+    expires?: number;
     total: number;
     usage: {
       upload: number;

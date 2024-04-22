@@ -1,7 +1,19 @@
 <template>
   <div class="form-block-wrapper">
-    <div class="sticky-title-wrapper actions-title-wrapper">
+    <div v-if="sourceType !== 'file'" class="sticky-title-wrapper actions-title-wrapper">
       <p>{{ $t(`editorPage.subConfig.actions.label`) }}</p>
+      <font-awesome-icon
+        v-if="isCollapsed"
+        @click.stop="setCollapsed(false)"
+        class="toggle fa-toggle"
+        icon="fa-solid fa-toggle-on "
+      />
+      <font-awesome-icon
+        v-else
+        @click.stop="setCollapsed(true)"
+        class="toggle fa-toggle"
+        icon="fa-solid fa-toggle-off"
+      />
       <button @click="popActionsHelp">
         <font-awesome-icon icon="fa-solid fa-circle-question" />
         {{ $t(`editorPage.subConfig.basic.nodeActionsHelp`) }}
@@ -19,21 +31,29 @@
   delay: 150,
   handle: '.drag-handler',
 }" @end="drag = false" @start="drag = true" item-key="id">
-      <template #item="{ element }">
+      <template #item="{ element, index }">
         <nut-cell class="list-group-item" aria-hidden="true">
-          <div class="list-group-item-title">
+          <div :class="{ 'list-group-item-title': true, 'collapsed': collapsedElements.includes(index) }">
             <div class="title-text left">
-              <span>{{
+              <span class="collapsed" @click="toggleElementCollapsed(index)">
+                <nut-icon v-if="!collapsedElements.includes(index)" name="rect-down" size="12px"></nut-icon>
+                <nut-icon v-if="collapsedElements.includes(index)" name="rect-right" size="12px"></nut-icon>
+              </span>
+              <span class="name" @click="toggleElementCollapsed(index)">{{
                 $t(`editorPage.subConfig.nodeActions['${element.type}'].label`)
               }}</span>
               <font-awesome-icon icon="fa-solid fa-circle-question" @click="pop(element.type, element.tipsDes)" />
             </div>
             <div class="right">
               <div class="preview-switch">
-                <span>
+                <!-- <nut-switch class="my-switch" v-model="getItem(element.id)[1]" /> -->
+                <nut-checkbox class="my-switch" v-model="getItem(element.id)[1]"></nut-checkbox>
+                <span @click="togglePreviewSwitch(element.id)">
                   {{ $t(`editorPage.subConfig.basic.previewSwitch`) }}
                 </span>
-                <nut-switch class="my-switch" v-model="getItem(element.id)[1]" />
+              </div>
+              <div class="copy">
+                <font-awesome-icon icon="fa-solid fa-clone" @click="copyItem(element)"></font-awesome-icon>
               </div>
               <div class="delete">
                 <font-awesome-icon icon="fa-solid fa-trash-can" @click="deleteItem(element.id)" />
@@ -43,7 +63,7 @@
               </div>
             </div>
           </div>
-          <Component :is="element.component" :type="element.type" :id="element.id" />
+          <Component v-show="!collapsedElements.includes(index)" :is="element.component" :type="element.type" :id="element.id" :sourceType="sourceType"/>
         </nut-cell>
       </template>
     </Draggable>
@@ -71,52 +91,178 @@
         <span>{{
           $t(`editorPage.subConfig.actions.addAction.title`)
         }}</span>
-        <font-awesome-icon @click="popActionsHelp" icon="fa-solid fa-circle-question" />
+        <font-awesome-icon v-if="sourceType !== 'file'"  @click="popActionsHelp" icon="fa-solid fa-circle-question" />
       </div>
       <div class="horizontal-button-container">
         <button v-for="(item, index) in columns" :key="index" @click="onButtonClick(item)" class="custom-button">
           {{ item.text }}
         </button>
+        <button @click="paste" class="custom-button">
+          {{ $t(`editorPage.subConfig.actions.pasteAction.label`) }}
+        </button>
       </div>
     </nut-cell>
+    <nut-form v-if="showPasteboard" class="paste-action">
+      <nut-form-item>
+        <nut-textarea
+          class="textarea-wrapper"
+          v-model="pasteboard"
+          :autosize="{ maxHeight: 110, minHeight: 50 }"
+          :placeholder="$t(`editorPage.subConfig.actions.pasteAction.placeholder`)"
+          text-align="center"
+        />
+        <div class="horizontal-button-container">
+          <button @click="cancelPaste" class="custom-button">
+            {{ $t(`editorPage.subConfig.actions.addAction.cancel`) }}
+          </button>
+          <button @click="paste" class="custom-button">
+            {{ $t(`editorPage.subConfig.actions.pasteAction.label`) }}
+          </button>
+        </div>
+      </nut-form-item>
+  </nut-form>
   </div>
 </template>
 
 <script lang="ts" setup>
 // import { useMousePicker } from '@/hooks/useMousePicker';
 import i18nFile from '@/locales/zh';
-import { Dialog } from '@nutui/nutui';
-import { ref } from 'vue';
+import { Dialog, Toast } from '@nutui/nutui';
+import { ref, inject, createVNode } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Draggable from 'vuedraggable';
+import { useClipboard } from '@vueuse/core';
+import useV3Clipboard from "vue-clipboard3";
+// const { copy, isSupported, text } = useClipboard({ read: true });
+const { copy, isSupported } = useClipboard();
+const { toClipboard: copyFallback } = useV3Clipboard();
 
 const { t } = useI18n();
+const pasteboard = ref("");
+const showPasteboard = ref(false);
 const drag = ref(true);
+const isCollapsed = ref(localStorage.getItem('actions-block-collapsed') === '1');
+const collapsedElements = ref([]);
+const form = inject<Sub | Collection>('form');
+// 列表渲染的数据
+// 预览开关数组，数组第一项为 id，对应 list 中的同 id 项目，控制该 id 开启关闭预览
+const { checked, list, sourceType } = defineProps<{
+  checked: Array<[string, boolean]>;
+  list: ActionModuleProps[];
+  sourceType?: string;
+}>();
 
 // 通过 i18n 构造 picker 选项
 // const showAddPicker = ref(false);
 // const showAddPicker = ref(true);
 const types = Object.keys(i18nFile.editorPage.subConfig.nodeActions);
-const items = types.map(type => {
+let items = types.map(type => {
   return {
     text: t(`editorPage.subConfig.nodeActions['${type}'].label`),
     value: type,
   };
 });
+
+if (sourceType === 'file') {
+  items = items.filter(item => ['Script Operator'].includes(item.value));
+}
 const columns = ref(items);
 // useMousePicker();
 
-
+if(isCollapsed.value) {
+  collapsedElements.value = [...Array(list.length).keys()];
+} else {
+  collapsedElements.value = [];
+}
+const setCollapsed = (v) => {
+  isCollapsed.value = v;
+  if (v) {
+    localStorage.setItem('actions-block-collapsed', '1')
+    collapsedElements.value = [...Array(list.length).keys()];
+  } else {
+    localStorage.removeItem('actions-block-collapsed')
+    collapsedElements.value = [];
+  }
+};
+const toggleElementCollapsed = (index) => {
+  if (collapsedElements.value.includes(index)) {
+    collapsedElements.value = collapsedElements.value.filter(item => item !== index);
+  } else {
+    collapsedElements.value.push(index);
+  }
+  if(collapsedElements.value.length === list.length) {
+    setCollapsed(true)
+  } else if(collapsedElements.value.length === 0){
+    setCollapsed(false)
+  } else {
+    isCollapsed.value = false;
+  }
+};
 const onButtonClick = (item) => {
   emit('addAction', [item]);
 };
 
-// 列表渲染的数据
-// 预览开关数组，数组第一项为 id，对应 list 中的同 id 项目，控制该 id 开启关闭预览
-const { checked, list } = defineProps<{
-  checked: Array<[string, boolean]>;
-  list: ActionModuleProps[];
-}>();
+const copyItem = async element => {
+  const item = form.process.find(item => item.id === element.id);
+  const data = JSON.stringify({ source: sourceType, data: item })
+  if (isSupported) {
+    await copy(data);
+  } else {
+    await copyFallback(data);
+  }
+  Toast.text(`已复制数据 可用于导入`);
+
+};
+const cancelPaste = async () => {
+  showPasteboard.value = false
+  pasteboard.value = ''
+}
+const paste = async () => {
+  try {
+    let text = ''
+  if (showPasteboard.value) {
+    text = pasteboard.value
+    showPasteboard.value = false
+    pasteboard.value = ''
+  } else {
+    try {
+      text = await navigator.clipboard.readText()
+    } catch (e) {
+      console.error(e)
+      pasteboard.value = ''
+      showPasteboard.value = true
+      return
+    }
+  }
+  let item
+  try {
+    item = JSON.parse(text)
+  } catch (e) {
+    
+  }
+  // console.log(`item`, item)
+  if (item?.data?.id && item?.data?.type) {
+    if (item?.source !== sourceType) {
+      throw new Error('文件操作与订阅操作不通用')
+    }
+    const data = [{
+      ...item.data,
+      value: item.data.type,
+    }]
+    // console.log(data)
+    emit('addAction', data);
+  } else {
+    throw new Error('数据格式错误')
+  }
+  } catch (e) {
+    console.error(e)
+    Toast.text(`导入失败 ${e.message ?? e}`);
+  }
+};
+
+
+
+
 
 const emit = defineEmits(['addAction', 'deleteAction']);
 // 示例数据
@@ -136,6 +282,10 @@ const emit = defineEmits(['addAction', 'deleteAction']);
 // 获取绑定的对应预览开关
 const getItem = (id: string) => {
   return checked.find(item => item[0] === id);
+};
+const togglePreviewSwitch = (id: string) => {
+  const item = getItem(id);
+  return item[1] = !item[1];
 };
 
 // 删除条目，actionsList 中记录的顺序 和 对应预览开关
@@ -185,6 +335,17 @@ const pop = (type: string, tipsDes: string) => {
 </script>
 
 <style lang="scss" scoped>
+.paste-action {
+  background-color: var(--dialog-color);
+  box-shadow: 0 1px 40px var(--background-color);
+  border-radius: var(--item-card-radios);
+  border: solid 1px var(--divider-color);
+  position: fixed;
+  width: 300px;
+  height: 140px;
+  left: calc(50vw - 150px);
+  top: calc(50vh - 70px);
+}
 .add-action-btn {
   font-size: 14px;
   width: 100%;
@@ -227,9 +388,21 @@ const pop = (type: string, tipsDes: string) => {
     color: var(--comment-text-color);
     border-bottom: 1px solid var(--divider-color);
 
+    &.collapsed {
+      padding-bottom: 0;
+      margin-bottom: 0;
+      border-bottom: none;
+    }
+
     .left {
       font-size: 12px;
       font-weight: bold;
+      display: flex;
+      align-items: center;
+
+      .collapsed, .name {
+        cursor: pointer;
+      }
 
       span {
         margin-right: 6px;
@@ -244,9 +417,12 @@ const pop = (type: string, tipsDes: string) => {
       display: flex;
 
       .preview-switch {
+        -webkit-user-select: none;
+        user-select: none;
+        cursor: pointer;
         display: flex;
         align-items: center;
-        margin-right: 12px;
+        // margin-right: 12px;
 
         span {
           margin-right: 8px;
@@ -255,20 +431,24 @@ const pop = (type: string, tipsDes: string) => {
         }
 
         .my-switch {
-          height: 22px;
-          width: 45px;
-          min-width: 40px;
+          width: 18px;
+          // width: 45px;
+          // min-width: 40px;
 
-          :deep(.switch-button) {
-            width: 18px;
-            height: 18px;
+          :deep(.nut-icon) {
+            font-size: 16px;
           }
         }
       }
 
+      .copy {
+        padding: 0 12px;
+        cursor: pointer;
+      }
       .delete {
-        padding: 0 24px;
+        padding: 0 12px;
         color: var(--danger-color);
+        cursor: pointer;
       }
 
       .drag-handler {
@@ -313,6 +493,13 @@ const pop = (type: string, tipsDes: string) => {
 .actions-title-wrapper {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+
+  .toggle {
+    cursor: pointer;
+    margin-left: 18px;
+    margin-right: auto;
+  }
 
   button {
     background: none;
@@ -373,6 +560,7 @@ const pop = (type: string, tipsDes: string) => {
   border: none;
   font-weight: normal;
   // box-shadow: 0 1px 40px var(--background-color);
+  cursor: pointer;
 }
 
 .horizontal-button-container {
