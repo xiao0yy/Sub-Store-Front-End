@@ -1,6 +1,6 @@
 <template>
   <div v-if="isDis">
-  <div class="page-wrapper">
+  <div class="page-wrapper" @click="handleEditGlobalClick">
     <!-- 基础表单 -->
     <div class="form-block-wrapper">
       <div class="sticky-title-wrapper">
@@ -25,6 +25,7 @@
         >
           <input
             class="nut-input-text"
+            data-1p-ignore
             @blur="customerBlurValidate('name')"
             v-model.trim="form.name"
             :placeholder="$t(`editorPage.subConfig.basic.name.placeholder`)"
@@ -38,6 +39,7 @@
         >
           <input
             class="nut-input-text"
+            data-1p-ignore
             v-model.trim="form.displayName"
             :placeholder="
               $t(`editorPage.subConfig.basic.displayName.placeholder`)
@@ -62,12 +64,16 @@
           :label="$t(`editorPage.subConfig.basic.icon.label`)"
           prop="icon"
         >
-          <input
-            class="nut-input-text"
-            v-model.trim="form.icon"
-            :placeholder="$t(`editorPage.subConfig.basic.icon.placeholder`)"
-            type="text"
-          />
+          <nut-input
+              :border="false"
+              class="nut-input-text"
+              v-model.trim="form.icon"
+              :placeholder="$t(`editorPage.subConfig.basic.icon.placeholder`)"
+              type="text"
+              input-align="right"
+              left-icon="shop"
+              @click-left-icon="iconTips"
+            />
         </nut-form-item>
 
         <template v-if="editType === 'subs'">
@@ -89,10 +95,11 @@
             </div>
           </nut-form-item>
           <!-- url / content -->
+          <!-- :label="$t(`editorPage.subConfig.basic.url.label`)" -->
           <nut-form-item
             required
+            
             v-if="form.source === 'remote'"
-            :label="$t(`editorPage.subConfig.basic.url.label`)"
             prop="url"
             :rules="[
               {
@@ -105,9 +112,19 @@
               },
             ]"
           >
+            <template v-slot:label>
+              <span class="label-tips" @click="urlTips">
+                <p>{{$t(`editorPage.subConfig.basic.url.label`)}}</p>
+                <span class="tips">
+                  <span>{{$t(`editorPage.subConfig.basic.url.tips.label`)}}</span>
+                  <!-- <nut-icon name="tips"></nut-icon> -->
+                </span>
+              </span>
+            </template>
             <nut-textarea
               class="textarea-wrapper"
               @blur="customerBlurValidate('url')"
+              @change="strTrim('url')"
               v-model="form.url"
               :autosize="{ maxHeight: 110, minHeight: 50 }"
               :placeholder="$t(`editorPage.subConfig.basic.url.placeholder`)"
@@ -134,6 +151,12 @@
               全屏编辑
               <!-- 测试 后续再改效果 -->
             </button>
+            <span class="button-tips" @click="contentTips">
+                <span class="tips">
+                  <span>{{$t(`editorPage.subConfig.basic.url.tips.label`)}}</span>
+                  <!-- <nut-icon name="tips"></nut-icon> -->
+                </span>
+              </span>
             <div style="margin-left: -15px; margin-right: -15px;max-height: 60vh;overflow: auto;">
               <cmView :isReadOnly="false" id="SubEditer"/>
             </div>
@@ -268,7 +291,7 @@
           prop="ignoreFailedRemoteSub"
           class="ignore-failed-wrapper"
         >
-          <div class="swtich-wrapper">
+          <div class="switch-wrapper">
             <nut-switch v-model="form.ignoreFailedRemoteSub" />
           </div>
         </nut-form-item>
@@ -280,8 +303,10 @@
 
     <!-- 节点操作 -->
     <ActionBlock
+      ref="actionBlockRef"
       :checked="actionsChecked"
       :list="actionsList"
+      @updateCustomNameModeFlag="updateCustomNameModeFlag"
       @addAction="addAction"
       @deleteAction="deleteAction"
     />
@@ -499,13 +524,14 @@ watchEffect(() => {
 
   if (sourceData.process.length > 0) {
     form.process.forEach((item) => {
-      const { type, id } = item;
+      const { type, id, customName } = item;
 
       if (!ignoreList.includes(type)) {
         actionsChecked.push([id, true]);
         const action = {
           type,
           id,
+          customName,
           tipsDes: t(`editorPage.subConfig.nodeActions['${type}'].tipsDes`),
           component: null,
         };
@@ -747,6 +773,16 @@ const urlValidator = (val: string): Promise<boolean> => {
   const customerBlurValidate = (prop: string) => {
     ruleForm.value.validate(prop);
   };
+  // 去除空格
+  const strTrim = (prop: string) => {
+    if (typeof form[prop] === "string") {
+      // 正则表达式去除首尾空格,
+      form[prop] = form[prop].replace(/\s+/g, '')
+    }
+  }
+  const iconTips = () => {
+    router.push(`/icon/collection`);
+  };
   const uaTips = () => {
     Dialog({
         title: '默认使用配置中的全局 UA',
@@ -773,6 +809,30 @@ const urlValidator = (val: string): Promise<boolean> => {
     Dialog({
         title: '通过代理/节点/策略获取订阅',
         content: '1. Surge(需使用 有 ability=http-client-policy 的模块, 参数 policy/policy-descriptor)\n\n可设置节点代理 例: Test = snell, 1.2.3.4, 80, psk=password, version=4\n\n或设置策略/节点 例: 国外加速\n\n2. Loon(参数 node)\n\nLoon 官方文档: \n\n指定该请求使用哪一个节点或者策略组（可以使节点名称、策略组名称，也可以说是一个Loon格式的节点描述，如：shadowsocksr,example.com,1070,chacha20-ietf,"password",protocol=auth_aes128_sha1,protocol-param=test,obfs=plain,obfs-param=edge.microsoft.com）\n\n3. Stash(参数 headers["X-Surge-Policy"])/Shadowrocket(参数 headers.X-Surge-Policy)/QX(参数 opts.policy)\n\n可设置策略/节点\n\n4. Node.js 版(模块 request 的 proxy 参数):\n\n例: http://127.0.0.1:8888',
+        popClass: 'auto-dialog',
+        textAlign: 'left',
+        okText: 'OK',
+        noCancelBtn: true,
+        closeOnPopstate: true,
+        lockScroll: false,
+      });
+  };
+  const urlTips = () => {
+    Dialog({
+        title: t('editorPage.subConfig.basic.url.tips.title'),
+        content: t('editorPage.subConfig.basic.url.tips.content'),
+        popClass: 'auto-dialog',
+        textAlign: 'left',
+        okText: 'OK',
+        noCancelBtn: true,
+        closeOnPopstate: true,
+        lockScroll: false,
+      });
+  };
+  const contentTips = () => {
+    Dialog({
+        title: t('editorPage.subConfig.basic.content.tips.title'),
+        content: t('editorPage.subConfig.basic.content.tips.content'),
         popClass: 'auto-dialog',
         textAlign: 'left',
         okText: 'OK',
@@ -852,6 +912,19 @@ const urlValidator = (val: string): Promise<boolean> => {
   //   const currentGroup = subsSelectList.value.filter(item => shouldShowElement(item[3])).map(item => item[0])
   //   return true
   // });
+
+const actionBlockRef = ref(null)
+const customNameModeFlag = ref(false)
+const updateCustomNameModeFlag = (flag) => customNameModeFlag.value = flag
+const handleEditGlobalClick = () => {
+  if (actionBlockRef.value) {
+    if (customNameModeFlag.value) {
+      // exit
+      actionBlockRef.value.exitAllEditName();
+    }
+  }
+
+}
 </script>
 
 <style lang="scss" scoped>
@@ -862,7 +935,7 @@ const urlValidator = (val: string): Promise<boolean> => {
   :deep(.nut-cell-group__warp) {
     border-radius: var(--item-card-radios);
   }
-  :deep(.nut-icon-tips:before) {
+  :deep(.nut-icon-tips:before), :deep(.nut-icon-shop:before) {
     cursor: pointer;
   }
 }
@@ -892,6 +965,28 @@ const urlValidator = (val: string): Promise<boolean> => {
 
 .form-block-wrapper {
   position: relative;
+  .button-tips {
+    color: var(--primary-color);
+    cursor: pointer;
+    font-size: 12px;
+    text-decoration: underline;
+    margin-left: 6px;
+  }
+  .label-tips {
+    display: inline-flex;
+    flex-direction: column;
+    cursor: pointer;
+    .tips {
+      display: inline-flex;
+      align-items: center;
+      span {
+        color: var(--primary-color);
+        text-decoration: underline;
+        font-size: 12px;
+        // color: #fa2c19;
+      }
+    }
+  }
 }
 
 .bottom-btn-wrapper {
@@ -935,7 +1030,7 @@ const urlValidator = (val: string): Promise<boolean> => {
   :deep(.nut-form-item__label) {
     width: auto;
   }
-  .swtich-wrapper {
+  .switch-wrapper {
     display: flex;
     justify-content: flex-end
   }

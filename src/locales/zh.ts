@@ -9,6 +9,7 @@ export default {
     unknown: '未知',
     all: '全部',
     untagged: '未分组',
+    or: '或',
   },
   globalNotify: {
     refresh: {
@@ -33,6 +34,7 @@ export default {
       editScript: '脚本编辑',
       subEditor: '订阅编辑',
       fileEditor: '文件编辑',
+      iconCollection: '图标仓库',
       themeSetting: '主题设置',
       moreSetting: '更多设置',
       apiSetting: '后端设置',
@@ -99,6 +101,11 @@ export default {
   },
   // 订阅管理页
   subPage: {
+    import: {
+      label: '导入',
+      succeed: '导入成功',
+      failed: '导入失败\n{e}',
+    },
     addSubTitle: '选择要创建的订阅类型',
     previewTitle: '预览/拷贝订阅',
 
@@ -151,12 +158,17 @@ export default {
       succeed: '配置克隆成功！',
       failed: '配置克隆失败！\n{e}',
     },
+    exportConfigNotify: {
+      loading: '导出配置中...',
+      succeed: '导出成功！',
+      failed: '导出失败！\n{e}',
+    },
     panel: {
       general: '通用订阅',
       tips: {
         ok: '查看文档',
         cancel: '取消',
-        desc: '订阅链接参数说明',
+        desc: '部分功能需使用参数 请查看文档',
         title: '订阅链接参数',
         content: '"target=SurgeMac"\n+ ShadowsocksR/External Proxy Program\n\n"includeUnsupportedProxy=true" 包含官方/商店版不支持的协议',
       }
@@ -213,6 +225,14 @@ export default {
           label: '显示名称',
           placeholder: '输入展示的名称',
         },
+        subInfoUrl: {
+          label: '查询流量信息订阅链接',
+          placeholder: '用于传递流量信息',
+        },
+        subInfoUserAgent: {
+          label: '查询流量信息 User-Agent',
+          placeholder: '不设置则使用默认 User-Agent',
+        },
         tag: {
           label: '标签',
           placeholder: '标签(用 , 分隔) 将用于分组',
@@ -228,7 +248,12 @@ export default {
         },
         url: {
           label: '链接',
-          placeholder: '订阅链接(多个订阅请换行) 支持参数: cacheKey 请求失败时从此处读取最近一次成功的缓存, validCheck 过期或无剩余流量时报错, flowUserAgent 查询流量时使用的 User-Agent, noFlow 不查询流量, hideExpire 隐藏到期, showRemaining 显示剩余流量而不是已用流量, noCache 不使用缓存, resetDay 每月流量重置日, startDate 订阅开始日期, cycleDays 订阅重置周期(单位: 天). 例: http://a.com?token=1#cycleDays=31&startDate=2024-06-04 或 http://a.com?token=1#resetDay=15',
+          placeholder: '支持多行和参数, 请点击左侧的使用说明查看用法',
+          tips: {
+            label: '使用说明',
+            title: '订阅链接',
+            content: '支持换行输入多个订阅\n\n支持以下参数\n\ncacheKey: 设置乐观缓存的名称 开启后也可自行在持久化缓存中管理(适合经常拉取失败的订阅)\nvalidCheck: 过期或无剩余流量时报错\nflowUserAgent: 查询流量时使用的 User-Agent\nflowUrl: 自定义查询流量的 URL(将使用响应体的内容)\nnoFlow: 不查询流量\nhideExpire: 隐藏到期\nshowRemaining: 显示剩余流量而不是已用流量\nnoCache: 不使用缓存\nresetDay: 每月流量重置日\nstartDate: 订阅开始日期\ncycleDays: 订阅重置周期(单位: 天)\n\n例: http://a.com?token=1#cycleDays=31&startDate=2024-06-04\n或 http://a.com?token=1#resetDay=15',
+          },
           isEmpty: '订阅链接不能为空',
           isIllegal: '订阅链接格式非法',
         },
@@ -237,11 +262,15 @@ export default {
         },
         content: {
           label: '内容',
-          placeholder: '填入订阅内容: 1. 多个单行的代理协议/JSON/URI 2. 完整 Base64/YAML',
+          placeholder: '',
+          tips: {
+            title: '本地订阅节点',
+            content: '填入订阅内容:\n\n1. 换行输入多个单行的代理协议/JSON/URI\n\n2. 完整 Base64/YAML',
+          },
         },
         icon: {
           label: '图标链接',
-          placeholder: '填入图标链接，不要使用 jpg',
+          placeholder: '可点击左侧图标, 从图标库复制. 填入图标链接，不要使用 jpg',
         },
         ignoreFailedRemoteSub: {
           label: '忽略失败的远程订阅'
@@ -339,8 +368,8 @@ export default {
         },
         'Resolve Domain Operator': {
           label: '域名解析',
-          des: '提供商(可由节点字段 "no-resolve" 控制)',
-          options: ['Google', 'IP-API', 'Cloudflare', 'Ali', 'Tencent'],
+          des: '提供商(可由节点字段 "_no-resolve" 控制)',
+          options: ['Google', 'IP-API', 'Cloudflare', 'Ali', 'Tencent', '自定义'],
           types: ['IPv4', 'IPv6', 'IP4P'],
           filters: ['不过滤', '移除失败', '只保留 IP', '只保留 IPv4', '只保留 IPv6'],
           cache: ['启用', '禁用'],
@@ -367,6 +396,7 @@ export default {
             'TUIC',
             'Hysteria',
             'Hysteria 2',
+            'Juicity',
             'WireGuard',
             'SSH',
             'External Proxy Program',
@@ -614,6 +644,28 @@ export default {
       content: '⚠️ 只会获取不在同步配置中的 gist 文件\n你需要手动设置来源',
       confirm: '从 gist 恢复',
     }
+  },
+  // 图标仓库页
+  iconCollectionPage: {
+    iconCollection: '图标仓库',
+    iconCollectionPlaceholder: '请输入图标仓库地址',
+    iconName: '图标名称',
+    iconNamePlaceholder: '请输入图标名称',
+    iconCollectionKey: '图标仓库字段',
+    iconCollectionKeyPlaceholder: '默认: icons',
+    iconUrlKey: '图标地址字段',
+    iconUrlKeyPlaceholder: '默认: url',
+    errorIconCollectionUrlTips: '请输入正确的图标仓库地址',
+    copySuccessTips: '已复制图标地址',
+    emptyCollectionTitle: '暂无图标数据',
+    emptyCollectionDesc: '请手动刷新或选择其他图标仓库',
+    refreshBtn: '手动刷新',
+    selectCollectionBtn: '切换图标仓库',
+    collectionPicker: {
+      title: '选择一个图标仓库',
+      cancel: '取消',
+      confirm: '确定',
+    },
   },
   themeSettingPage: {
     themeSettingTitle: '外观设置',
