@@ -13,6 +13,20 @@
   >
     <nut-form :model-value="editPanelData" ref="ruleForm">
       <nut-form-item
+        :label="$t(`editorPage.subConfig.basic.icon.label`)"
+        prop="icon"
+      >
+        <nut-input
+          input-align="left"
+          class="nut-input-text"
+          :placeholder="$t(`editorPage.subConfig.basic.icon.placeholder`)"
+          v-model.trim="editPanelData.icon"
+          type="text"
+          left-icon="shop"
+          @click-left-icon="iconTips"
+        />
+      </nut-form-item>
+      <nut-form-item
         :label="$t(`syncPage.addArtForm.name.label`)"
         prop="name"
         :required="!isEditMode"
@@ -42,7 +56,7 @@
           type="text"
         />
       </nut-form-item>
-      
+
       <nut-form-item
         :label="$t(`syncPage.addArtForm.displayName.label`)"
         prop="displayName"
@@ -52,18 +66,6 @@
           class="nut-input-text"
           :placeholder="$t(`syncPage.addArtForm.displayName.label`)"
           v-model="editPanelData.displayName"
-          type="text"
-        />
-      </nut-form-item>
-      <nut-form-item
-        :label="$t(`editorPage.subConfig.basic.icon.label`)"
-        prop="icon"
-      >
-        <nut-input
-          input-align="left"
-          class="nut-input-text"
-          :placeholder="$t(`editorPage.subConfig.basic.icon.placeholder`)"
-          v-model="editPanelData.icon"
           type="text"
         />
       </nut-form-item>
@@ -89,8 +91,8 @@
           type="text"
         />
         <!-- readonly 只读 -->
-          
-        <Teleport to="body">
+
+        <Teleport to="#ztop">
           <nut-cascader
             :title="$t('syncPage.selectSource.title')"
             v-model:visible="sourceSelectorIsVisible"
@@ -117,8 +119,10 @@
           >
             <nut-radio label="Stash">Stash</nut-radio>
             <nut-radio label="ClashMeta">Clash.Meta(mihomo)</nut-radio>
-            <nut-radio label="Clash">Clash</nut-radio>
+            <nut-radio label="Clash">Clash(Deprecated)</nut-radio>
+            <nut-radio label="Egern">Egern</nut-radio>
             <nut-radio label="Surfboard">Surfboard</nut-radio>
+            <nut-radio label="SurgeMac"><a href="https://github.com/sub-store-org/Sub-Store/wiki/%E9%93%BE%E6%8E%A5%E5%8F%82%E6%95%B0%E8%AF%B4%E6%98%8E" target="_blank">Surge(macOS) ⓘ</a></nut-radio>
             <nut-radio label="Surge">Surge</nut-radio>
             <nut-radio label="Loon">Loon</nut-radio>
             <nut-radio label="ShadowRocket">Shadowrocket</nut-radio>
@@ -133,12 +137,13 @@
 </template>
 
 <script lang="ts" setup>
+  import { useRouter } from "vue-router";
   import { useArtifactsStore } from '@/store/artifacts';
   import { useSubsStore } from '@/store/subs';
   import { Dialog, Toast } from '@nutui/nutui';
   import { computed, ref, toRaw, watchEffect } from 'vue';
   import { useI18n } from 'vue-i18n';
-
+  const router = useRouter();
   const { t } = useI18n();
   const artifactsStore = useArtifactsStore();
   const isInit = ref(false);
@@ -146,7 +151,7 @@
   const ruleForm = ref();
 
   const emit = defineEmits(['close']);
-  
+
   const { name } = defineProps<{
     name: string;
   }>();
@@ -311,19 +316,22 @@
   };
 
   const includeUnsupportedProxyTips = () => {
-    const includeUnsupportedProxyTipsTitle = t(`syncPage.addArtForm.includeUnsupportedProxy.tips.title`)
-    const includeUnsupportedProxyTipsContent = t(`syncPage.addArtForm.includeUnsupportedProxy.tips.content`)
-    Dialog({
-      title: includeUnsupportedProxyTipsTitle,
-      content: includeUnsupportedProxyTipsContent,
-      popClass: 'auto-dialog',
-      okText: 'OK',
-      noCancelBtn: true,
-      closeOnPopstate: true,
-      lockScroll: false,
-    });
+    window.open('https://github.com/sub-store-org/Sub-Store/wiki/%E9%93%BE%E6%8E%A5%E5%8F%82%E6%95%B0%E8%AF%B4%E6%98%8E');
+    // const includeUnsupportedProxyTipsTitle = t(`syncPage.addArtForm.includeUnsupportedProxy.tips.title`)
+    // const includeUnsupportedProxyTipsContent = t(`syncPage.addArtForm.includeUnsupportedProxy.tips.content`)
+    // Dialog({
+    //   title: includeUnsupportedProxyTipsTitle,
+    //   content: includeUnsupportedProxyTipsContent,
+    //   popClass: 'auto-dialog',
+    //   okText: 'OK',
+    //   noCancelBtn: true,
+    //   closeOnPopstate: true,
+    //   lockScroll: false,
+    // });
   };
-
+  const iconTips = () => {
+    router.push(`/icon/collection`);
+  };
   watchEffect(() => {
     if (!isInit.value && name) {
       const artifact = artifactsStore.artifacts.find(art => art.name === name);
@@ -340,7 +348,6 @@
 </script>
 
 <style lang="scss">
-
   .artifact-panel {
     .include-unsupported-proxy-wrapper {
       flex-direction: row;
@@ -358,7 +365,6 @@
     }
     .nut-dialog {
       width: 88vw;
-
       .nut-dialog__content {
         max-height: 72vh !important;
 

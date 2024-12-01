@@ -1,11 +1,20 @@
 <template>
   <div v-if="isDis">
-  <div class="page-wrapper">
+  <div class="page-wrapper" @click="handleEditGlobalClick">
     <!-- 基础表单 -->
     <div class="form-block-wrapper">
-      <div class="sticky-title-wrapper">
-        <p>{{ $t(`editorPage.subConfig.basic.label`) }}</p>
+      <div v-if="appearanceSetting.isShowIcon" class="sticky-title-icon-container">
+        <nut-image
+          :class="{ 'sub-item-customer-icon': !appearanceSetting.isIconColor }"
+          :src="subIcon"
+          fit="cover"
+          show-loading
+          @click="showIconPopup"
+        />
       </div>
+      <!-- <div class="sticky-title-wrapper">
+        <p>{{ $t(`editorPage.subConfig.basic.label`) }}</p>
+      </div> -->
       <nut-form class="form" :model-value="form" ref="ruleForm">
         <!-- name -->
         <nut-form-item
@@ -25,6 +34,7 @@
         >
           <input
             class="nut-input-text"
+            data-1p-ignore
             @blur="customerBlurValidate('name')"
             v-model.trim="form.name"
             :placeholder="$t(`editorPage.subConfig.basic.name.placeholder`)"
@@ -38,6 +48,7 @@
         >
           <input
             class="nut-input-text"
+            data-1p-ignore
             v-model.trim="form.displayName"
             :placeholder="
               $t(`editorPage.subConfig.basic.displayName.placeholder`)
@@ -45,29 +56,57 @@
             type="text"
           />
         </nut-form-item>
+        <!-- remark -->
+        <nut-form-item
+          :label="$t(`editorPage.subConfig.basic.remark.label`)"
+          prop="remark"
+        >
+          <nut-textarea
+            class="nut-input-text"
+            :border="false"
+            v-model="form.remark"
+            :placeholder="
+              $t(`editorPage.subConfig.basic.remark.placeholder`)
+            "
+            type="text"
+            input-align="right"
+            rows="1"
+            :autosize="{ maxHeight: 140 }"
+            max-length="100"
+          />
+        </nut-form-item>
         <!-- tag -->
         <nut-form-item
           :label="$t(`editorPage.subConfig.basic.tag.label`)"
           prop="tag"
         >
-          <input
+          <nut-input
             class="nut-input-text"
             v-model.trim="form.tag"
+            :border="false"
             :placeholder="$t(`editorPage.subConfig.basic.tag.placeholder`)"
             type="text"
-          />
+            input-align="right"
+            right-icon="rect-right"
+            @click-right-icon="showTagPopup('tag')"
+          >
+          </nut-input>
         </nut-form-item>
         <!-- icon -->
         <nut-form-item
           :label="$t(`editorPage.subConfig.basic.icon.label`)"
           prop="icon"
         >
-          <input
-            class="nut-input-text"
-            v-model.trim="form.icon"
-            :placeholder="$t(`editorPage.subConfig.basic.icon.placeholder`)"
-            type="text"
-          />
+          <nut-input
+              :border="false"
+              class="nut-input-text"
+              v-model.trim="form.icon"
+              :placeholder="$t(`editorPage.subConfig.basic.icon.placeholder`)"
+              type="text"
+              input-align="right"
+              left-icon="shop"
+              @click-left-icon="showIconPopup"
+            />
         </nut-form-item>
 
         <template v-if="editType === 'subs'">
@@ -89,10 +128,11 @@
             </div>
           </nut-form-item>
           <!-- url / content -->
+          <!-- :label="$t(`editorPage.subConfig.basic.url.label`)" -->
           <nut-form-item
             required
+            
             v-if="form.source === 'remote'"
-            :label="$t(`editorPage.subConfig.basic.url.label`)"
             prop="url"
             :rules="[
               {
@@ -105,9 +145,19 @@
               },
             ]"
           >
+            <template v-slot:label>
+              <span class="label-tips" @click="urlTips">
+                <p>{{$t(`editorPage.subConfig.basic.url.label`)}}</p>
+                <span class="tips">
+                  <span>{{$t(`editorPage.subConfig.basic.url.tips.label`)}}</span>
+                  <!-- <nut-icon name="tips"></nut-icon> -->
+                </span>
+              </span>
+            </template>
             <nut-textarea
               class="textarea-wrapper"
               @blur="customerBlurValidate('url')"
+              @change="strTrim('url')"
               v-model="form.url"
               :autosize="{ maxHeight: 110, minHeight: 50 }"
               :placeholder="$t(`editorPage.subConfig.basic.url.placeholder`)"
@@ -131,9 +181,19 @@
             /> -->
             <button class="cimg-button" @click="isDis = false">
               <img src="" />
-              全屏编辑
+              {{ $t(`editorPage.subConfig.basic.url.tips.fullScreenEdit`) }}
               <!-- 测试 后续再改效果 -->
             </button>
+            <input type="file" ref="fileInput" @change="fileChange" style="display: none">
+            <button class="cimg-button" @click="upload">
+              {{ $t(`editorPage.subConfig.basic.url.tips.importFromFile`) }}
+            </button>
+            <span class="button-tips" @click="contentTips">
+                <span class="tips">
+                  <span>{{$t(`editorPage.subConfig.basic.url.tips.label`)}}</span>
+                  <!-- <nut-icon name="tips"></nut-icon> -->
+                </span>
+              </span>
             <div style="margin-left: -15px; margin-right: -15px;max-height: 60vh;overflow: auto;">
               <cmView :isReadOnly="false" id="SubEditer"/>
             </div>
@@ -214,6 +274,24 @@
         </template>
 
         <template v-else-if="editType === 'collections'">
+          <!-- subscriptionTags -->
+          <nut-form-item
+            :label="$t(`editorPage.subConfig.basic.subscriptionTags.label`)"
+            prop="subscriptionTags"
+          >
+            <nut-input
+              :border="false"
+              class="nut-input-text"
+              v-model.trim="form.subscriptionTags"
+              :placeholder="$t(`editorPage.subConfig.basic.subscriptionTags.placeholder`)"
+              type="text"
+              input-align="right"
+              left-icon="tips"
+              right-icon="rect-right"
+              @click-left-icon="subscriptionTagsTips"
+              @click-right-icon="showTagPopup('linkTag')"
+            />
+          </nut-form-item>
           <nut-form-item
             :label="$t(`editorPage.subConfig.basic.subscriptions.label`)+ selectedSubs"
             prop="subscriptions"
@@ -245,7 +323,7 @@
               >
                 <div class="sub-img-wrapper">
                   <nut-avatar
-                    :class="{ 'sub-item-customer-icon': !isIconColor, 'icon': true  }"
+                    :class="{ 'sub-item-customer-icon': !appearanceSetting.isIconColor, 'icon': true  }"
                     v-if="item[2]"
                     size="32"
                     :url="item[2]"
@@ -260,7 +338,22 @@
                 </div>
               </nut-checkbox>
             </nut-checkboxgroup>
-          </nut-form-item>
+            </nut-form-item>
+              <nut-form-item
+              :label="$t(`editorPage.subConfig.basic.proxy.label`)"
+              prop="proxy"
+            >
+              <nut-input
+                :border="false"
+                class="nut-input-text"
+                v-model.trim="form.proxy"
+                :placeholder="$t(`editorPage.subConfig.basic.proxy.placeholder`)"
+                type="text"
+                input-align="right"
+                left-icon="tips"
+                @click-left-icon="proxyTips"
+              />
+            </nut-form-item>
         </template>
 
         <nut-form-item
@@ -268,7 +361,7 @@
           prop="ignoreFailedRemoteSub"
           class="ignore-failed-wrapper"
         >
-          <div class="swtich-wrapper">
+          <div class="switch-wrapper">
             <nut-switch v-model="form.ignoreFailedRemoteSub" />
           </div>
         </nut-form-item>
@@ -276,12 +369,14 @@
     </div>
 
     <!-- 常用配置 -->
-    <CommonBlock v-if="isEditorCommon" />
+    <CommonBlock v-if="appearanceSetting.isEditorCommon" />
 
     <!-- 节点操作 -->
     <ActionBlock
+      ref="actionBlockRef"
       :checked="actionsChecked"
       :list="actionsList"
+      @updateCustomNameModeFlag="updateCustomNameModeFlag"
       @addAction="addAction"
       @deleteAction="deleteAction"
     />
@@ -306,7 +401,7 @@
 <div v-else style="width: 100%;max-height: 95vh;">
     <button class="cimg-button" @click="isDis = true">
       <img src="" />
-      取消全屏
+      {{ $t(`editorPage.subConfig.basic.url.tips.fullScreenEditCancel`) }}
     </button>
     <cmView :isReadOnly="false" id="SubEditer" />
   </div>
@@ -316,6 +411,17 @@
     :compareData="compareData"
     @closeCompare="closeCompare"
   />
+  <icon-popup
+    v-model:visible="iconPopupVisible"
+    ref="iconPopupRef"
+    @setIcon="setIcon">
+  </icon-popup>
+  <tag-popup
+    v-model:visible="tagPopupVisible"
+    ref="tagPopupRef"
+    :currentTag="currentTag"
+    @setTag="setTagValue">
+  </tag-popup>
 </template>
 
 <script lang="ts" setup>
@@ -326,6 +432,7 @@ import logoRedIcon from "@/assets/icons/logo-red.png";
 import { usePopupRoute } from "@/hooks/usePopupRoute";
 import { useAppNotifyStore } from "@/store/appNotify";
 import { useGlobalStore } from "@/store/global";
+import { useSettingsStore } from '@/store/settings';
 import { useSubsStore } from "@/store/subs";
 import { addItem, deleteItem } from "@/utils/actionsOperate";
 import { actionsToProcess } from "@/utils/actionsToPorcess";
@@ -338,6 +445,8 @@ import FilterSelect from "@/views/editor/components/FilterSelect.vue";
 import HandleDuplicate from "@/views/editor/components/HandleDuplicate.vue";
 import Regex from "@/views/editor/components/Regex.vue";
 import Script from "@/views/editor/components/Script.vue";
+import IconPopup from "@/views/icon/IconPopup.vue";
+import TagPopup from "@/components/TagPopup.vue";
 import { Dialog, Toast } from "@nutui/nutui";
 import { storeToRefs } from "pinia";
 import {
@@ -366,8 +475,15 @@ const subsStore = useSubsStore();
 const { showNotify } = useAppNotifyStore();
 
 const globalStore = useGlobalStore();
-const { bottomSafeArea, isEditorCommon, isDefaultIcon, isIconColor } =
-  storeToRefs(globalStore);
+const settingsStore = useSettingsStore();
+const { appearanceSetting } = storeToRefs(settingsStore);
+
+const {
+    bottomSafeArea,
+    // isEditorCommon,
+    // isDefaultIcon, 
+    // isIconColor 
+  } = storeToRefs(globalStore);
 const padding = bottomSafeArea.value + "px";
 
   const sub = computed(() => subsStore.getOneSub(configName));
@@ -379,7 +495,7 @@ const padding = bottomSafeArea.value + "px";
       return [
         item.name,
         item.displayName || item['display-name'] || item.name,
-        item.icon || (isDefaultIcon.value ? logoIcon : logoRedIcon),
+        item.icon || (appearanceSetting.value.isDefaultIcon ? logoIcon : logoRedIcon),
         item.tag
       ];
     });
@@ -406,8 +522,29 @@ const padding = bottomSafeArea.value + "px";
     return result
   });
   const tag = ref('all');
+  const tagPopupVisible = ref(false);
+  const tagType = ref('tag'); // 标签tag | 关联订阅标签linkTag
+  const tagPopupRef = ref(null);
+  const currentTag = computed(() => {
+    if (tagType.value === 'linkTag') {
+      return form.subscriptionTags
+    } else {
+      return form.tag
+    }
+  })
+  const showTagPopup = (type:string) => {
+    tagType.value = type || 'tag'
+    tagPopupVisible.value = true
+  };
+  const setTagValue = (tag: any) => {
+    if (tagType.value === 'linkTag') {
+      form.subscriptionTags = tag;
+    } else {
+      form.tag = tag;      
+    }
+  };
   const selectedSubs = computed(() => {
-    if(!Array.isArray(form.subscriptions) || form.subscriptions.length === 0) return ''
+    if(!Array.isArray(form.subscriptions) || form.subscriptions.length === 0) return `: ${t(`editorPage.subConfig.basic.subscriptions.empty`)}`
     return `: ${form.subscriptions.map((name) => {
       const sub = subsStore.getOneSub(name);
       return sub?.displayName || sub?.["display-name"] || sub.name;
@@ -423,10 +560,12 @@ const ruleForm = ref<any>(null);
 const actionsChecked = reactive([]);
 const actionsList = reactive([]);
 const isget = ref(false);
+const fileInput = ref(null);
 const form = reactive<any>({
   name: "",
   displayName: "",
   form: "",
+  remark: "",
   mergeSources: "",
   ignoreFailedRemoteSub: false,
   icon: "",
@@ -440,7 +579,6 @@ provide("form", form);
 
 // 排除非动作卡片
 const ignoreList = ["Quick Setting Operator"];
-
 watch(
   () => cmStore.EditCode['SubEditer'],
   (newCode) => {
@@ -475,6 +613,7 @@ watchEffect(() => {
   form.ignoreFailedRemoteSub = sourceData.ignoreFailedRemoteSub;
   form.name = sourceData.name;
   form.displayName = sourceData.displayName || sourceData["display-name"];
+  form.remark = sourceData.remark;
   form.icon = sourceData.icon;
   form.process = newProcess;
   form.subUserinfo = sourceData.subUserinfo;
@@ -482,6 +621,9 @@ watchEffect(() => {
   form.tag = Array.isArray(sourceData.tag)
     ? sourceData.tag.join(", ")
     : sourceData.tag;
+  form.subscriptionTags = Array.isArray(sourceData.subscriptionTags)
+    ? sourceData.subscriptionTags.join(", ")
+    : sourceData.subscriptionTags;
 
   switch (editType) {
     case "collections":
@@ -499,13 +641,14 @@ watchEffect(() => {
 
   if (sourceData.process.length > 0) {
     form.process.forEach((item) => {
-      const { type, id } = item;
+      const { type, id, customName } = item;
 
       if (!ignoreList.includes(type)) {
         actionsChecked.push([id, true]);
         const action = {
           type,
           id,
+          customName,
           tipsDes: t(`editorPage.subConfig.nodeActions['${type}'].tipsDes`),
           component: null,
         };
@@ -569,7 +712,35 @@ const closeCompare = () => {
 
   router.back();
 };
+const upload = async() => {
+  try {
+    fileInput.value.click()
+  } catch (e) {
+    console.error(e);
+  }
+}
+const fileChange = async (event) => {
+  const file = event.target.files[0];
+  if(!file) return
+  try {
+    const reader = new FileReader();
+    reader.readAsText(file);
+    reader.onload = () => {
+      cmStore.setEditCode("SubEditer", String(reader.result));
+    }
 
+    reader.onerror = e => {
+      throw e
+    }
+    
+  } catch (e) {
+    showNotify({
+      type: "danger",
+      title: '文件导入失败',
+    });
+    console.error(e);
+  }
+};
 const compare = () => {
   ruleForm.value.validate().then(async ({ valid, errors }: any) => {
     // 如果验证失败
@@ -593,6 +764,22 @@ const compare = () => {
     });
     const data: any = JSON.parse(JSON.stringify(toRaw(form)));
     data.process = actionsToProcess(data.process, actionsList, ignoreList);
+    data.tag = [
+      ...new Set(
+        (data.tag || "")
+          .split(",")
+          .map((item: string) => item.trim())
+          .filter((item: string) => item.length)
+      ),
+    ];
+    data.subscriptionTags = [
+      ...new Set(
+        (data.subscriptionTags || "")
+          .split(",")
+          .map((item: string) => item.trim())
+          .filter((item: string) => item.length)
+      ),
+    ];
 
     // 过滤掉预览开关关闭的操作
     actionsChecked.forEach((item) => {
@@ -603,7 +790,10 @@ const compare = () => {
         }
       }
     });
-
+    // 当前如果已经存在改订阅配置，则更新订阅信息
+    if (configName !== "UNTITLED") {
+      await subsStore.fetchFlows(ref([data]).value);
+    }
     const type = editType === "collections" ? "collection" : "sub";
     const res = await subsApi.compareSub(type, data);
     if (res?.data?.status === "success") {
@@ -666,10 +856,18 @@ const submit = () => {
           .filter((item: string) => item.length)
       ),
     ];
+    data.subscriptionTags = [
+      ...new Set(
+        (data.subscriptionTags || "")
+          .split(",")
+          .map((item: string) => item.trim())
+          .filter((item: string) => item.length)
+      ),
+    ];
     data["display-name"] = data.displayName;
     data.process = actionsToProcess(data.process, actionsList, ignoreList);
 
-    // console.log('submit.....\n', data);
+    console.log('submit.....\n', data);
 
     let res = null;
 
@@ -747,6 +945,32 @@ const urlValidator = (val: string): Promise<boolean> => {
   const customerBlurValidate = (prop: string) => {
     ruleForm.value.validate(prop);
   };
+  // 去除空格
+  const strTrim = (prop: string) => {
+    if (typeof form[prop] === "string") {
+      // 正则表达式去除首尾空格,
+      form[prop] = form[prop].replace(/[^\S\r\n]+/g, '')
+    }
+  }
+  // 图标
+  const subIcon = computed(() => {
+    if (form.icon) {
+      return form.icon
+    } else {
+      return appearanceSetting.value.isDefaultIcon ? logoIcon : logoRedIcon
+    }
+  })
+  const iconPopupVisible = ref(false)
+  const iconPopupRef = ref(null)
+  const showIconPopup = () => {
+    iconPopupVisible.value = true
+  }
+  const setIcon = (icon: any) => {
+    form.icon = icon.url
+  }
+  const iconTips = () => {
+    router.push(`/icon/collection`);
+  };
   const uaTips = () => {
     Dialog({
         title: '默认使用配置中的全局 UA',
@@ -761,7 +985,7 @@ const urlValidator = (val: string): Promise<boolean> => {
   const subUserinfoTips = () => {
     Dialog({
         title: '手动设置订阅流量信息',
-        content: '格式:\n\nupload=1024; download=10240; total=102400; expire=4115721600',
+        content: '格式:\n\nupload=1024; download=10240; total=102400; expire=4115721600; reset_day=14; plan_name=VIP1; app_url=http://a.com\n\n1. app_url, 订阅将有一个可点击跳转的按钮\n\n2. plan_name, hover 时将显示套餐名称\n\n3. reset_day, 流量重置剩余天数(若要设置周期性重置, 可查看订阅链接中的参数说明)\n\n⚠️ 注意: 手动设置的订阅流量信息会附加到订阅自己的流量信息之前. 若包含不合法的内容, 订阅将无法正常使用\n\n例如: http://官网.com 应编码为 http%3A%2F%2F%E5%AE%98%E7%BD%91.com',
         popClass: 'auto-dialog',
         okText: 'OK',
         noCancelBtn: true,
@@ -772,7 +996,43 @@ const urlValidator = (val: string): Promise<boolean> => {
   const proxyTips = () => {
     Dialog({
         title: '通过代理/节点/策略获取订阅',
-        content: '1. Surge(需使用 有 ability=http-client-policy 的模块, 参数 policy/policy-descriptor)\n\n可设置节点代理 例: Test = snell, 1.2.3.4, 80, psk=password, version=4\n\n或设置策略/节点 例: 国外加速\n\n2. Loon(参数 node)\n\nLoon 官方文档: \n\n指定该请求使用哪一个节点或者策略组（可以使节点名称、策略组名称，也可以说是一个Loon格式的节点描述，如：shadowsocksr,example.com,1070,chacha20-ietf,"password",protocol=auth_aes128_sha1,protocol-param=test,obfs=plain,obfs-param=edge.microsoft.com）\n\n3. Stash(参数 headers["X-Surge-Policy"])/Shadowrocket(参数 headers.X-Surge-Policy)/QX(参数 opts.policy)\n\n可设置策略/节点\n\n4. Node.js 版(模块 request 的 proxy 参数):\n\n例: http://127.0.0.1:8888',
+        content: '1. Surge(参数 policy/policy-descriptor)\n\n可设置节点代理 例: Test = snell, 1.2.3.4, 80, psk=password, version=4\n\n或设置策略/节点 例: 国外加速\n\n2. Loon(参数 node)\n\nLoon 官方文档: \n\n指定该请求使用哪一个节点或者策略组（可以使节点名称、策略组名称，也可以说是一个Loon格式的节点描述，如：shadowsocksr,example.com,1070,chacha20-ietf,"password",protocol=auth_aes128_sha1,protocol-param=test,obfs=plain,obfs-param=edge.microsoft.com）\n\n3. Stash(参数 headers["X-Surge-Policy"])/Shadowrocket(参数 headers.X-Surge-Policy)/QX(参数 opts.policy)\n\n可设置策略/节点\n\n4. Node.js 版(模块 request 的 proxy 参数):\n\n例: http://127.0.0.1:8888\n\n※ 优先级由高到低: 单条订阅, 组合订阅, 默认配置',
+        popClass: 'auto-dialog',
+        textAlign: 'left',
+        okText: 'OK',
+        noCancelBtn: true,
+        closeOnPopstate: true,
+        lockScroll: false,
+      });
+  };
+  const subscriptionTagsTips = () => {
+    Dialog({
+        title: '组合订阅与单条订阅',
+        content: '组合订阅中将包含\n\n1. 含有关联订阅标签的单条订阅\n\n2. 手动选择的单条订阅\n\n举例: 设置了关联订阅标签为 "A, B" 后\n包含标签 "A" 或 "B" 的单条订阅将自动关联到此组合订阅',
+        popClass: 'auto-dialog',
+        textAlign: 'left',
+        okText: 'OK',
+        noCancelBtn: true,
+        closeOnPopstate: true,
+        lockScroll: false,
+      });
+  };
+  const urlTips = () => {
+    Dialog({
+        title: t('editorPage.subConfig.basic.url.tips.title'),
+        content: t('editorPage.subConfig.basic.url.tips.content'),
+        popClass: 'auto-dialog',
+        textAlign: 'left',
+        okText: 'OK',
+        noCancelBtn: true,
+        closeOnPopstate: true,
+        lockScroll: false,
+      });
+  };
+  const contentTips = () => {
+    Dialog({
+        title: t('editorPage.subConfig.basic.content.tips.title'),
+        content: t('editorPage.subConfig.basic.content.tips.content'),
         popClass: 'auto-dialog',
         textAlign: 'left',
         okText: 'OK',
@@ -852,6 +1112,18 @@ const urlValidator = (val: string): Promise<boolean> => {
   //   const currentGroup = subsSelectList.value.filter(item => shouldShowElement(item[3])).map(item => item[0])
   //   return true
   // });
+
+const actionBlockRef = ref(null)
+const customNameModeFlag = ref(false)
+const updateCustomNameModeFlag = (flag) => customNameModeFlag.value = flag
+const handleEditGlobalClick = () => {
+  if (actionBlockRef.value) {
+    if (customNameModeFlag.value) {
+      // exit
+      actionBlockRef.value.exitAllEditName();
+    }
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -862,7 +1134,7 @@ const urlValidator = (val: string): Promise<boolean> => {
   :deep(.nut-cell-group__warp) {
     border-radius: var(--item-card-radios);
   }
-  :deep(.nut-icon-tips:before) {
+  :deep(.nut-icon-tips:before), :deep(.nut-icon-shop:before) {
     cursor: pointer;
   }
 }
@@ -892,6 +1164,61 @@ const urlValidator = (val: string): Promise<boolean> => {
 
 .form-block-wrapper {
   position: relative;
+  .sticky-title-icon-container {
+    display: flex;
+    justify-content: center;
+    .nut-image {
+      cursor: pointer;
+      width: 70px;
+      height: 70px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: transparent;
+      padding: 10px;
+      :deep(img) {
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
+      }
+    }
+    .sub-item-customer-icon {
+      :deep(img) {
+        & {
+          opacity: 0.8;
+          filter: brightness(var(--img-brightness));
+        }
+      }
+    }
+  }
+  .button-tips {
+    color: var(--primary-color);
+    cursor: pointer;
+    font-size: 12px;
+    text-decoration: underline;
+    margin-left: 6px;
+  }
+  .label-tips {
+    display: inline-flex;
+    flex-direction: column;
+    cursor: pointer;
+    .tips {
+      display: inline-flex;
+      align-items: center;
+      span {
+        color: var(--primary-color);
+        text-decoration: underline;
+        font-size: 12px;
+        // color: #fa2c19;
+      }
+    }
+  }
+  :deep(.nut-input-text){
+    .nut-input-inner {
+      .nut-input-right-icon {
+        margin-left: 8px;
+      }
+    }
+  }
 }
 
 .bottom-btn-wrapper {
@@ -935,7 +1262,7 @@ const urlValidator = (val: string): Promise<boolean> => {
   :deep(.nut-form-item__label) {
     width: auto;
   }
-  .swtich-wrapper {
+  .switch-wrapper {
     display: flex;
     justify-content: flex-end
   }

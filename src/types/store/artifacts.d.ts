@@ -4,11 +4,13 @@ interface ArtifactsStoreState {
 
 type ArtifactsPlatform =
   | 'Surge'
+  | 'SurgeMac'
   | 'QX'
   | 'Loon'
   | 'Clash'
   | 'Stash'
   | 'ShadowRocket'
+  | 'Egern'
   | 'ClashMeta'
   | 'sing-box'
   | 'V2Ray';

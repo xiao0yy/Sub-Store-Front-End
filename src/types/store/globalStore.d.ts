@@ -17,12 +17,15 @@ interface GlobalStoreState {
   ishostApi: string;
   savedPositions: any;
   subProgressStyle: any;
+  defaultIconCollection: string;
 }
 
 interface ENV {
+  meta?: any; 
   hasNewVersion?: boolean;
   latestVersion?: string;
   version?: string;
+  feature?: any;
   backend?:
     | 'sing-box'
     | 'Stash'
@@ -30,6 +33,7 @@ interface ENV {
     | 'Loon'
     | 'Surge'
     | 'ShadowRocket'
+    | 'Egern'
     | 'Clash'
     | 'ClashMeta'
     | 'V2Ray'

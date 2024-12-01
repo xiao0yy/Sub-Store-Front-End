@@ -15,7 +15,29 @@
           />
         </template>
       </nut-cell>
-
+      <nut-cell :title="$t(`moreSettingPage.isSimpleReicon`)" class="cell-item">
+        <template v-slot:link>
+          <nut-switch
+            class="my-switch"
+            v-model="awSimpleReicon"
+            size="mini"
+            @change="setSimpleReicon"
+          />
+        </template>
+      </nut-cell>
+      <nut-cell
+        :title="$t(`moreSettingPage.isSimpleShowRemarks`)"
+        class="cell-item"
+      >
+        <template v-slot:link>
+          <nut-switch
+            class="my-switch"
+            v-model="awSimpleShowRemark"
+            size="mini"
+            @change="setSimpleShowRemark"
+          />
+        </template>
+      </nut-cell>
       <nut-cell :title="$t(`moreSettingPage.islr`)" class="cell-item">
         <template v-slot:link>
           <nut-switch
@@ -37,6 +59,16 @@
           />
         </template>
       </nut-cell>
+      <nut-cell :title="$t(`moreSettingPage.isShowIcon`)" class="cell-item">
+        <template v-slot:link>
+          <nut-switch
+            class="my-switch"
+            v-model="awIsShowIcon"
+            size="mini"
+            @change="setIsShowIcon"
+          />
+        </template>
+      </nut-cell>
       <nut-cell :title="$t(`moreSettingPage.isIC`)" class="cell-item">
         <template v-slot:link>
           <nut-switch
@@ -47,7 +79,19 @@
           />
         </template>
       </nut-cell>
-
+      <nut-cell
+        :title="$t(`moreSettingPage.isSubItemMenuFold`)"
+        class="cell-item"
+      >
+        <template v-slot:link>
+          <nut-switch
+            class="my-switch"
+            v-model="awIsSubItemMenuFold"
+            size="mini"
+            @change="setIsSubItemMenuFold"
+          />
+        </template>
+      </nut-cell>
       <nut-cell :title="$t(`moreSettingPage.isEditorCommon`)" class="cell-item">
         <template v-slot:link>
           <nut-switch
@@ -59,16 +103,6 @@
         </template>
       </nut-cell>
 
-      <nut-cell :title="$t(`moreSettingPage.isSimpleReicon`)" class="cell-item">
-        <template v-slot:link>
-          <nut-switch
-            class="my-switch"
-            v-model="awSimpleReicon"
-            size="mini"
-            @change="setSimpleReicon"
-          />
-        </template>
-      </nut-cell>
       <nut-cell :title="$t(`moreSettingPage.showFloatingRefreshButton`)" class="cell-item">
         <template v-slot:link>
           <nut-switch
@@ -76,6 +110,16 @@
             v-model="awShowFloatingRefreshButton"
             size="mini"
             @change="setShowFloatingRefreshButton"
+          />
+        </template>
+      </nut-cell>
+      <nut-cell :title="$t(`moreSettingPage.showFloatingAddButton`)" class="cell-item">
+        <template v-slot:link>
+          <nut-switch
+            class="my-switch"
+            v-model="awShowFloatingAddButton"
+            size="mini"
+            @change="setShowFloatingAddButton"
           />
         </template>
       </nut-cell>
@@ -103,7 +147,7 @@
       <nut-cell
           class="cell-item"
           :title="$t(`moreSettingPage.subProgress.title`)"
-          :desc="$t(`moreSettingPage.subProgress.${subProgressStyle}`)"
+          :desc="subProgressStyleName"
           @click="()=>{showSubProgressPicker=true}"
           is-link
         >
@@ -208,19 +252,21 @@
   const globalStore = useGlobalStore();
   const {
     // env,
-    isSimpleMode,
-    isLeftRight,
+    // isSimpleMode,
+    // isLeftRight,
     ishostApi,
-    isIconColor,
-    isDefaultIcon,
-    isEditorCommon,
-    isSimpleReicon,
-    showFloatingRefreshButton,
-    istabBar,
-    istabBar2,
-    subProgressStyle,
+    // isIconColor,
+    // isDefaultIcon,
+    // isEditorCommon,
+    // isSimpleReicon,
+    // showFloatingRefreshButton,
+    // istabBar,
+    // istabBar2,
+    // subProgressStyle,
   } = storeToRefs(globalStore);
-
+  // 外观设置
+  const { changeAppearanceSetting } = settingsStore;
+  const { appearanceSetting } = storeToRefs(settingsStore);
   const { showNotify } = useAppNotifyStore();
 
   const InputHostApi = ref('');
@@ -229,9 +275,13 @@
   const LeftRight = ref(false);
   const awIconColor = ref(false);
   const awIsDefaultIcon = ref(false);
+  const awIsShowIcon = ref(true);
+  const awIsSubItemMenuFold = ref(true);
   const awEditorCommon = ref(false);
   const awSimpleReicon = ref(true);
+  const awSimpleShowRemark = ref(false);
   const awShowFloatingRefreshButton = ref(false);
+  const awShowFloatingAddButton = ref(true);
   const awtabBar = ref(true);
   const awtabBar2 = ref(true);
   // const isEditing = ref(false);
@@ -244,46 +294,134 @@
   // const isEditLoading = ref(false);
   const showSubProgressPicker = ref(false);
 
+  const subProgressStyleName = computed(() => {
+    return t(`moreSettingPage.subProgress.${subProgressStyleValue.value}`)
+  })
   const subProgressStyleConfirm = ({ selectedValue }) => {
-    globalStore.setSubProgressStyle(selectedValue[0]);
+    // globalStore.setSubProgressStyle(selectedValue[0]);
+    const data = {
+      ...appearanceSetting.value,
+      subProgressStyle: selectedValue[0]
+    }
+    changeAppearanceSetting({ appearanceSetting: data });
   };
   const setSimpleMode = (isSimpleMode: boolean) => {
-    globalStore.setSimpleMode(isSimpleMode);
+    // globalStore.setSimpleMode(isSimpleMode);
+    const data = {
+      ...appearanceSetting.value,
+      isSimpleMode: isSimpleMode
+    }
+    changeAppearanceSetting({ appearanceSetting: data });
   };
 
   const setLeftRight = (isLeftRight: boolean) => {
-    globalStore.setLeftRight(isLeftRight);
+    // globalStore.setLeftRight(isLeftRight);
+    const data = {
+      ...appearanceSetting.value,
+      isLeftRight: isLeftRight
+    }
+    changeAppearanceSetting({ appearanceSetting: data });
   };
 
   const setIconColor = (isIconColor: boolean) => {
-    globalStore.setIconColor(isIconColor);
+    // globalStore.setIconColor(isIconColor);
+    const data = {
+      ...appearanceSetting.value,
+      isIconColor: isIconColor
+    }
+    changeAppearanceSetting({ appearanceSetting: data });
   };
   const setIsDefaultIcon = (isDefaultIcon: boolean) => {
-    globalStore.setIsDefaultIcon(isDefaultIcon);
+    // globalStore.setIsDefaultIcon(isDefaultIcon);
+    const data = {
+      ...appearanceSetting.value,
+      isDefaultIcon: isDefaultIcon
+    }
+    changeAppearanceSetting({ appearanceSetting: data });
   };
 
-  const setEditorCommon = (isIconColor: boolean) => {
-    globalStore.setEditorCommon(isIconColor);
+  const setIsShowIcon = (isShowIcon: boolean) => {
+    // globalStore.setIsDefaultIcon(isDefaultIcon);
+    const data = {
+      ...appearanceSetting.value,
+      isShowIcon: isShowIcon
+    }
+    changeAppearanceSetting({ appearanceSetting: data });
+  };
+
+  const setIsSubItemMenuFold = (isSubItemMenuFold: boolean) => {
+    // globalStore.setIsDefaultIcon(isDefaultIcon);
+    const data = {
+      ...appearanceSetting.value,
+      isSubItemMenuFold: isSubItemMenuFold
+    }
+    changeAppearanceSetting({ appearanceSetting: data });
+  };
+
+  const setEditorCommon = (isEditorCommon: boolean) => {
+    // globalStore.setEditorCommon(isEditorCommon);
+    const data = {
+      ...appearanceSetting.value,
+      isEditorCommon: isEditorCommon
+    }
+    changeAppearanceSetting({ appearanceSetting: data });
   };
 
   const setSimpleReicon = (isSimpleReicon: boolean) => {
-    globalStore.setSimpleReicon(isSimpleReicon);
+    // globalStore.setSimpleReicon(isSimpleReicon);
+    const data = {
+      ...appearanceSetting.value,
+      isSimpleReicon: isSimpleReicon
+    }
+    changeAppearanceSetting({ appearanceSetting: data });
+  };
+
+  const setSimpleShowRemark = (isSimpleShowRemark: boolean) => {
+    // globalStore.setSimpleReicon(isSimpleReicon);
+    const data = {
+      ...appearanceSetting.value,
+      isSimpleShowRemark: isSimpleShowRemark
+    }
+    changeAppearanceSetting({ appearanceSetting: data });
   };
 
   const setShowFloatingRefreshButton = (showFloatingRefreshButton: boolean) => {
-    globalStore.setShowFloatingRefreshButton(showFloatingRefreshButton);
+    // globalStore.setShowFloatingRefreshButton(showFloatingRefreshButton);
+    const data = {
+      ...appearanceSetting.value,
+      showFloatingRefreshButton: showFloatingRefreshButton
+    }
+    changeAppearanceSetting({ appearanceSetting: data });
+  };
+
+  const setShowFloatingAddButton = (showFloatingAddButton: boolean) => {
+    const data = {
+      ...appearanceSetting.value,
+      showFloatingAddButton: showFloatingAddButton
+    }
+    changeAppearanceSetting({ appearanceSetting: data });
   };
 
   const settabBar = (istabBar: boolean) => {
-    globalStore.settabBar(istabBar);
+    // globalStore.settabBar(istabBar);
+    const data = {
+      ...appearanceSetting.value,
+      istabBar: istabBar
+    }
+    changeAppearanceSetting({ appearanceSetting: data });
   };
   const settabBar2 = (istabBar2: boolean) => {
-    globalStore.settabBar2(istabBar2);
+    // globalStore.settabBar2(istabBar2);
+    const data = {
+      ...appearanceSetting.value,
+      istabBar2: istabBar2
+    }
+    changeAppearanceSetting({ appearanceSetting: data });
   };
 
   
-
-
+  
+  // 主题设置 
   const { changeTheme } = settingsStore;
   const { theme } = storeToRefs(settingsStore);
   const { pickerList, pickerLightList, pickerDarkList, isAuto } = useThemes();
@@ -455,17 +593,31 @@
   // };
 
   watchEffect(() => {
-    SimpleSwitch.value = isSimpleMode.value;
-    LeftRight.value = isLeftRight.value;
-    awIconColor.value = isIconColor.value;
-    awIsDefaultIcon.value = isDefaultIcon.value;
-    awEditorCommon.value = isEditorCommon.value;
-    awEditorCommon.value = isEditorCommon.value;
-    awSimpleReicon.value = isSimpleReicon.value;
-    awShowFloatingRefreshButton.value = showFloatingRefreshButton.value;
-    awtabBar.value = istabBar.value;
-    awtabBar2.value = istabBar2.value;
-    subProgressStyleValue.value = [subProgressStyle.value];
+    SimpleSwitch.value = appearanceSetting.value.isSimpleMode;
+    LeftRight.value = appearanceSetting.value.isLeftRight;
+    awIconColor.value = appearanceSetting.value.isIconColor;
+    awIsDefaultIcon.value = appearanceSetting.value.isDefaultIcon;
+    awIsShowIcon.value = appearanceSetting.value.isShowIcon;
+    awIsSubItemMenuFold.value = appearanceSetting.value.isSubItemMenuFold;
+    awEditorCommon.value = appearanceSetting.value.isEditorCommon;
+    awSimpleReicon.value = appearanceSetting.value.isSimpleReicon;
+    awSimpleShowRemark.value = appearanceSetting.value.isSimpleShowRemark;
+    awShowFloatingRefreshButton.value = appearanceSetting.value.showFloatingRefreshButton;
+    awShowFloatingAddButton.value = appearanceSetting.value.showFloatingAddButton;
+    awtabBar.value = appearanceSetting.value.istabBar;
+    awtabBar2.value = appearanceSetting.value.istabBar2;
+    subProgressStyleValue.value = [appearanceSetting.value.subProgressStyle];
+    // SimpleSwitch.value = isSimpleMode.value;
+    // LeftRight.value = isLeftRight.value;
+    // awIconColor.value = isIconColor.value;
+    // awIsDefaultIcon.value = isDefaultIcon.value;
+    // awEditorCommon.value = isEditorCommon.value;
+    // awEditorCommon.value = isEditorCommon.value;
+    // awSimpleReicon.value = isSimpleReicon.value;
+    // awShowFloatingRefreshButton.value = showFloatingRefreshButton.value;
+    // awtabBar.value = istabBar.value;
+    // awtabBar2.value = istabBar2.value;
+    // subProgressStyleValue.value = [subProgressStyle.value];
     autoSwitch.value = isAuto();
     if (!isInit.value) {
       setDisplayInfo();

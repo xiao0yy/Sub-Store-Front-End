@@ -12,11 +12,15 @@ import NotFound from '@/views/NotFound.vue';
 import File from '@/views/File.vue';
 import FileEditor from '@/views/FileEditor.vue';
 // import editScript from '@/views/editCode/editScript.vue';
+import IconCollection from '@/views/icon/IconCollection.vue';
 
 import Sub from '@/views/Sub.vue';
 import SubEditor from '@/views/SubEditor.vue';
 
 import Sync from '@/views/Sync.vue';
+
+import ShareManage from '@/views/share/Share.vue';
+
 // import themeSetting from '@/views/themeSetting.vue';
 import moreSetting from '@/views/settings/moreSetting.vue';
 import { Toast } from '@nutui/nutui';
@@ -112,6 +116,15 @@ const router = createRouter({
             needNavBack: false,
           },
         },
+        {
+          path: '/share/manage',
+          component: ShareManage,
+          meta: {
+            title: 'shareManage',
+            needTabBar: false,
+            needNavBack: true,
+          },
+        },
         // {
         //   path: '/edit/Script/:id',
         //   component: editScript,
@@ -148,6 +161,15 @@ const router = createRouter({
         //     needNavBack: true,
         //   },
         // },
+        {
+          path: '/icon/collection',
+          component: IconCollection,
+          meta: {
+            title: 'iconCollection',
+            needTabBar: true,
+            needNavBack: true,
+          },
+        },
         {
           path: '/settings/more',
           component: moreSetting,

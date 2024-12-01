@@ -6,24 +6,37 @@
     <div class="radio-wrapper options-radio">
       <nut-radiogroup direction="horizontal" v-model="value">
         <nut-radio v-for="(key, index) in opt[type]" :label="key" :key="index"
-          >{{
+          >
+          <div class="input-wrapper" v-if="type === 'Resolve Domain Operator' && value==='Custom' && key==='Custom'">
+            <nut-input placeholder="目前仅支持 DoH" v-model="rdoUrl" />
+          </div>
+          <div v-else>
+            {{
             $t(`editorPage.subConfig.nodeActions['${type}'].options[${index}]`)
           }}
+          </div>
         </nut-radio>
       </nut-radiogroup>
     </div>
     <template v-if="type === 'Resolve Domain Operator' && rdoNewVersion">
       <div class="radio-wrapper options-radio">
-        <p class="des-label">解析类型</p>
+        <p class="des-label">EDNS(Google, Ali, Tencent, 自定义 DoH 会携带此参数, 可能会影响解析结果)</p>
+        <div class="input-wrapper">
+            <nut-input placeholder="请输入纯 IP, 默认为 223.6.6.6" v-model="rdoEdns" />
+          </div>
+      </div>
+      <div class="radio-wrapper options-radio">
+        <p class="des-label" style="cursor: pointer" @click="rdoTypeInfo">解析类型(IPv6 兼容 IP4P <font-awesome-icon icon="fa-solid fa-circle-question"/>)</p>
         <nut-radiogroup direction="horizontal" v-model="rdoType">
           <nut-radio v-for="(key, index) in rdoTypeOpt" :label="key" :key="index"
             >{{
               $t(`editorPage.subConfig.nodeActions['${type}'].types[${index}]`)
             }}
-            <font-awesome-icon v-if="key === 'IP4P'" @click="rdoTypeInfo" icon="fa-solid fa-circle-question"/>
+            <!-- <font-awesome-icon v-if="key === 'IPv6'" @click="rdoTypeInfo" icon="fa-solid fa-circle-question"/> -->
           </nut-radio>
         </nut-radiogroup>
       </div>
+      
       <div class="radio-wrapper options-radio">
         <p class="des-label">过滤结果</p>
         <nut-radiogroup direction="horizontal" v-model="rdoFilter">
@@ -92,29 +105,34 @@
   const opt = {
     'Flag Operator': ['add', 'remove'],
     'Sort Operator': ['asc', 'desc', 'random'],
-    'Resolve Domain Operator': ['Google', 'IP-API', 'Cloudflare', 'Ali', 'Tencent'],
+    'Resolve Domain Operator': ['Google', 'IP-API', 'Cloudflare', 'Ali', 'Tencent', 'Custom'],
   };
 
   const foTwOpt = ['cn', 'ws', 'tw'];
-  const rdoTypeOpt = ['IPv4', 'IPv6', 'IP4P'];
+  const rdoTypeOpt = ['IPv4', 'IPv6'];
   const rdoFilterOpt = ['disabled', 'removeFailed', 'IPOnly', 'IPv4Only', 'IPv6Only'];
   const rdoCacheOpt = ['enabled' , 'disabled'];
 
   const value = ref();
-  const rdoNewVersion = ref(false);
-  const foNewVersion = ref(false);
+  const rdoNewVersion = ref(true);
+  const foNewVersion = ref(true);
+  
+  // const rdoNewVersion = ref(false);
+  // const foNewVersion = ref(false);
 
-  try {
-    rdoNewVersion.value = semverGt(env.value.version, '2.14.184')
-  } catch (e) {}
-  try {
-    foNewVersion.value = semverGt(env.value.version, '2.14.119')
-  } catch (e) {}
+  // try {
+  //   rdoNewVersion.value = semverGt(env.value.version, '2.14.184')
+  // } catch (e) {}
+  // try {
+  //   foNewVersion.value = semverGt(env.value.version, '2.14.119')
+  // } catch (e) {}
 
   const foTw = ref('cn');
   const rdoType = ref('IPv4');
   const rdoFilter = ref('disabled');
   const rdoCache = ref('enabled');
+  const rdoUrl = ref('');
+  const rdoEdns = ref('');
 
   const showTwTips = () => {
     Toast.text('免责声明: 本操作仅将 Emoji 旗帜进行替换以便于显示, 不包含任何政治意味');
@@ -122,7 +140,7 @@
   const rdoTypeInfo = () => {
     Dialog({
       title: 'IP4P 地址格式',
-      content: '来自 NATMap, 将 IPv4 地址和端口同时编码在 DNS AAAA 记录中\n\n使用场景: STUN 内网穿透, 无需公网服务器即可获得 IPv4 公网地址',
+      content: '🆕 当选择解析类型为 IPv6 时\n将自动转换其中的 IP4P 地址\n\n来自 NATMap, 将 IPv4 地址和端口同时编码在 DNS AAAA 记录中\n\n使用场景: STUN 内网穿透, 无需公网服务器即可获得 IPv4 公网地址',
       popClass: 'auto-dialog',
       okText: '更多说明',
       cancelText: '取消',
@@ -155,15 +173,20 @@
         case 'Resolve Domain Operator':
           value.value = item.args?.provider ?? 'Google';
           rdoType.value = item.args?.type ?? 'IPv4';
+          if (rdoType.value === 'IP4P') {
+            rdoType.value = 'IPv6';
+          }
           rdoFilter.value = item.args?.filter ?? 'disabled';
           rdoCache.value = item.args?.cache ?? 'enabled';
+          rdoUrl.value = item.args?.url ?? '';
+          rdoEdns.value = item.args?.edns;
           break;
       }
     }
   });
 
   // 值变化时实时修改 form 的数据
-  watch([value, rdoFilter, rdoCache, rdoType, foTw], () => {
+  watch([value, rdoFilter, rdoCache, rdoUrl, rdoEdns, rdoType, foTw], () => {
     if (['IPv6', 'IP4P'].includes(rdoType.value) && ['IP-API'].includes(value.value)) {
       showNotify({
         title: `${value.value} 不支持 ${rdoType.value}`,
@@ -187,6 +210,8 @@
           type: rdoType.value,
           filter: rdoFilter.value,
           cache: rdoCache.value,
+          url: rdoUrl.value,
+          edns: rdoEdns.value,
         };
         break;
     }
@@ -217,5 +242,17 @@
     width: 100%;
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
+  }
+  .input-wrapper {
+    display: flex;
+    align-items: center;
+
+    > view.nut-input {
+      background: transparent;
+      padding: 8px 12px;
+      margin-right: 16px;
+      border-bottom: 1px solid var(--lowest-text-color);
+      color: var(--second-text-color);
+    }
   }
 </style>

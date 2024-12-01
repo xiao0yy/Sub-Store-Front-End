@@ -17,16 +17,16 @@
           }"
           :style="{
             cursor: 'pointer',
-            right: '16px',
+            left: '15px',
             bottom: `${
               bottomSafeArea +
-              48 +
-              36 +
-              (!isMobile() ? (isSimpleMode ? 44 : 48) : 0)
+              48 + 36 + 
+              (!isMobile() ? (appearanceSetting.isSimpleMode ? 44 : 48) : 0)
             }px`,
           }"
         >
           <div
+            v-if="appearanceSetting.showFloatingAddButton"
             class="drag-btn"
             @touchmove="onTa"
             @touchend="enTa"
@@ -202,11 +202,12 @@ import ArtifactsListItem from "@/components/ArtifactsListItem.vue";
 import { useArtifactsStore } from "@/store/artifacts";
 import { storeToRefs } from "pinia";
 import { useGlobalStore } from "@/store/global";
-import { ref, computed, toRaw } from "vue";
+import { ref, computed, toRaw, onMounted } from "vue";
 import { initStores } from "@/utils/initApp";
 import { useSettingsStore } from "@/store/settings";
 // import { useI18n } from 'vue-i18n';
 import ArtifactPanel from "@/components/ArtifactPanel.vue";
+import { useMethodStore } from '@/store/methodStore';
 import draggable from "vuedraggable";
 import { useSubsApi } from "@/api/subs";
 import { useI18n } from "vue-i18n";
@@ -221,15 +222,18 @@ const subsApi = useSubsApi();
 const globalStore = useGlobalStore();
 const artifactsStore = useArtifactsStore();
 const settingsStore = useSettingsStore();
+const methodStore = useMethodStore();
+
 const {
-  isSimpleMode,
+  // isSimpleMode,
   isLoading,
   fetchResult,
   bottomSafeArea,
-  showFloatingRefreshButton,
+  // showFloatingRefreshButton,
 } = storeToRefs(globalStore);
 const { artifacts } = storeToRefs(artifactsStore);
 const {
+  appearanceSetting,
   artifactStore: artifactStoreUrl,
   artifactStoreStatus,
   syncPlatform,
@@ -272,6 +276,7 @@ const uploadAllIsLoading = ref(false);
 const uploadAll = async () => {
   uploadAllIsLoading.value = true;
   await artifactsStore.syncAllArtifact();
+  await settingsStore.fetchSettings();
   uploadAllIsLoading.value = false;
 };
 const downloadAllIsLoading = ref(false);
@@ -365,6 +370,10 @@ const onclickAddArtifact = () => {
   if (as.value) return;
   isEditPanelVisible.value = true;
 };
+
+onMounted(() => {
+  methodStore.registerMethod("addSync", onclickAddArtifact);
+});
 
 const closeArtifactPanel = () => {
   editTargetName.value = "";
