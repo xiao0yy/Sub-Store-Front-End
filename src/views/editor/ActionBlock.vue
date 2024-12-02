@@ -67,6 +67,10 @@
               </div>
             </div>
             <div class="right">
+              <div class="action-switch">
+                <nut-checkbox class="my-switch" v-model="element.disabled"></nut-checkbox>
+                <span>{{ $t(`editorPage.subConfig.actions.disable`) }}</span>
+              </div>
               <div class="preview-switch">
                 <!-- <nut-switch class="my-switch" v-model="getItem(element.id)[1]" /> -->
                 <nut-checkbox class="my-switch" v-model="getItem(element.id)[1]"></nut-checkbox>
@@ -150,7 +154,7 @@
 // import { useMousePicker } from '@/hooks/useMousePicker';
 import i18nFile from '@/locales/zh';
 import { Dialog, Toast } from '@nutui/nutui';
-import { ref, inject, reactive, watch, nextTick, computed } from 'vue';
+import { ref, inject, reactive, watch, nextTick, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Draggable from 'vuedraggable';
 import { useClipboard } from '@vueuse/core';
@@ -174,6 +178,9 @@ const { checked, list, sourceType } = defineProps<{
   sourceType?: string;
 }>();
 
+onMounted(() => {
+  console.log('list', list)
+})
 // 通过 i18n 构造 picker 选项
 // const showAddPicker = ref(false);
 // const showAddPicker = ref(true);
@@ -564,25 +571,42 @@ defineExpose({ exitAllEditName });
     .right {
       display: flex;
       align-items: center;
+      .action-switch {
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+        .toggle {
+          color: var(--unimportant-icon-color);
+        }
+        span {
+          font-weight: normal;
+          font-size: 12px;
+        }
+        .my-switch {
+          width: 18px;
+          :deep(.nut-icon) {
+            font-size: 16px;
+          }
+        }
+      }
       .preview-switch {
         -webkit-user-select: none;
         user-select: none;
         cursor: pointer;
         display: flex;
         align-items: center;
+        // padding: 0 10px;
+
         // margin-right: 12px;
 
         span {
-          margin-right: 8px;
+          // margin-right: 8px;
           font-weight: normal;
           font-size: 12px;
         }
 
         .my-switch {
           width: 18px;
-          // width: 45px;
-          // min-width: 40px;
-
           :deep(.nut-icon) {
             font-size: 16px;
           }
@@ -590,17 +614,17 @@ defineExpose({ exitAllEditName });
       }
 
       .copy {
-        padding: 0 12px;
+        padding: 0 10px;
         cursor: pointer;
       }
       .delete {
-        padding: 0 12px;
+        padding: 0 10px;
         color: var(--danger-color);
         cursor: pointer;
       }
 
       .drag-handler {
-        padding-left: 16px;
+        padding-left: 10px;
         color: var(--lowest-text-color);
         cursor: move;
         cursor: grab;

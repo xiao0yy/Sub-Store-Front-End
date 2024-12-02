@@ -15,16 +15,17 @@ export const addItem = (
   const id = Math.random() * 100000000 + '';
   const type = selectedOptions[0].value;
   const args = selectedOptions[0].args;
+  const disabled = false;
   const obj = {
     id,
     customName: "",
     type,
     tipsDes: t(`editorPage.subConfig.nodeActions['${type}'].tipsDes`),
     component: null,
+    disabled,
   };
 
   actionsChecked.push([id, true]);
-
   switch (type) {
     case 'Flag Operator':
     case 'Sort Operator':

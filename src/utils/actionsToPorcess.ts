@@ -14,6 +14,7 @@ export const actionsToProcess = (
       args: findProcess(item.id).args,
       customName: findProcess(item.id).customName,
       id: item.id,
+      disabled: item.disabled,
     });
   });
   return newProcess;

@@ -641,7 +641,7 @@ watchEffect(() => {
 
   if (sourceData.process.length > 0) {
     form.process.forEach((item) => {
-      const { type, id, customName } = item;
+      const { type, id, customName, disabled } = item;
 
       if (!ignoreList.includes(type)) {
         actionsChecked.push([id, true]);
@@ -651,6 +651,7 @@ watchEffect(() => {
           customName,
           tipsDes: t(`editorPage.subConfig.nodeActions['${type}'].tipsDes`),
           component: null,
+          disabled
         };
         switch (type) {
           case "Flag Operator":
